@@ -25,7 +25,7 @@ const timers = new Map();
 const CONTROLLER_PASSWORD = process.env.CONTROLLER_PASSWORD || 'admin123';
 let controllerSocketId = null;
 const deviceToTimer = new Map(); // deviceId -> timerId
-const authenticatedControllers = new Set(); // Track authenticated controllers
+// const authenticatedControllers = new Set(); // Track authenticated controllers
 
 // Helper function to generate unique IDs
 function generateId() {
@@ -251,32 +251,30 @@ io.on('connection', (socket) => {
   socket.emit('timer-list', timerList);
 
   // Controller authentication
-  socket.on('authenticate-controller', (password) => {
-    console.log('Authentication attempt from:', socket.id, 'password:', password);
-    console.log('Expected password:', CONTROLLER_PASSWORD);
-    console.log('Password match:', password === CONTROLLER_PASSWORD);
-    if (password === CONTROLLER_PASSWORD) {
-      controllerSocketId = socket.id;
-      authenticatedControllers.add(socket.id);
-      socket.emit('controller-authenticated', true);
-      console.log('Controller authenticated:', socket.id);
-      console.log('controllerSocketId set to:', controllerSocketId);
-      console.log('Authenticated controllers:', Array.from(authenticatedControllers));
-    } else {
-      socket.emit('controller-authenticated', false);
-      console.log('Controller authentication failed:', socket.id);
-    }
-  });
+  // socket.on('authenticate-controller', (password) => {
+  //   console.log('Authentication attempt from:', socket.id, 'password:', password);
+  //   console.log('Expected password:', CONTROLLER_PASSWORD);
+  //   console.log('Password match:', password === CONTROLLER_PASSWORD);
+  //   if (password === CONTROLLER_PASSWORD) {
+  //     controllerSocketId = socket.id;
+  //     authenticatedControllers.add(socket.id);
+  //     socket.emit('controller-authenticated', true);
+  //     console.log('Controller authenticated:', socket.id);
+  //     console.log('controllerSocketId set to:', controllerSocketId);
+  //     console.log('Authenticated controllers:', Array.from(authenticatedControllers));
+  //   } else {
+  //     socket.emit('controller-authenticated', false);
+  //     console.log('Controller authentication failed:', socket.id);
+  //   }
+  // });
 
   // Join timer
   socket.on('join-timer', (timerId) => {
-    console.log('Join timer request:', socket.id, 'timerId:', timerId, 'Type:', typeof timerId);
-    console.log('Available timers:', Array.from(timers.keys()));
-    console.log(timers,"timers List")
+    // console.log('Join timer request:', socket.id, 'timerId:', timerId, 'Type:', typeof timerId);
+    // console.log('Available timers:', Array.from(timers.keys()));
+    // console.log(timers,"timers List")
     
     const timer = timers.get(timerId);
-    console.log('Found timer:', timer);
-    console.log(timerId,"timerId")
     if (timer) {
       // Always try to add the device, but don't fail if already connected
       const wasAdded = timer.addDevice(socket.id);
@@ -286,7 +284,7 @@ io.on('connection', (socket) => {
       
       // Always send the timer state, even if already connected
       const timerState = timer.getState();
-      console.log(`Sending timer-joined to ${socket.id}:`, timerState);
+      // console.log(`Sending timer-joined to ${socket.id}:`, timerState);
       socket.emit('timer-joined', timerState);
       socket.emit('timer-list', Array.from(timers.values()).map(t => ({
         id: t.id,
@@ -294,28 +292,28 @@ io.on('connection', (socket) => {
         duration: t.duration,
         connectedCount: t.connectedDevices.size
       })));
-      console.log(`Device ${socket.id} joined timer ${timerId}`);
+      // console.log(`Device ${socket.id} joined timer ${timerId}`);
     } else {
       socket.emit('timer-not-found', { timerId });
-      console.log(`Timer ${timerId} not found`);
+      // console.log(`Timer ${timerId} not found`);
     }
   });
 
   // Create timer (controller only)
   socket.on('create-timer', (data) => {
-    console.log('Create timer request:', socket.id, 'data:', data);
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Create timer request:', socket.id, 'data:', data);
+    // if (authenticatedControllers.has(socket.id)) {
       const timerId = generateId();
-      console.log('Generated timer ID:', timerId, 'Type:', typeof timerId);
+      // console.log('Generated timer ID:', timerId, 'Type:', typeof timerId);
       const timer = new Timer(timerId, data.name, data.duration);
       timers.set(timerId, timer);
-      console.log('Timer stored with ID:', timerId);
-      console.log('Timers map keys:', Array.from(timers.keys()));
+      // console.log('Timer stored with ID:', timerId);
+      // console.log('Timers map keys:', Array.from(timers.keys()));
       
       // Automatically join the controller to the timer
       timer.addDevice(socket.id);
       deviceToTimer.set(socket.id, timerId);
-      console.log(`Controller ${socket.id} automatically joined timer ${timerId}`);
+      // console.log(`Controller ${socket.id} automatically joined timer ${timerId}`);
       
       // Send timer list to all clients
       const timerList = Array.from(timers.values()).map(timer => ({
@@ -324,21 +322,21 @@ io.on('connection', (socket) => {
         duration: timer.duration,
         connectedCount: timer.connectedDevices.size
       }));
-      console.log('Broadcasting updated timer list to all clients:', timerList);
+      // console.log('Broadcasting updated timer list to all clients:', timerList);
       io.emit('timer-list', timerList);
       
       // Send the new timer to the creator
       socket.emit('timer-created', timer.getState());
-      console.log(`Timer created: ${timerId} - ${data.name}`);
-    } else {
-      console.log('Unauthorized create-timer attempt from:', socket.id);
-    }
+      // console.log(`Timer created: ${timerId} - ${data.name}`);
+    // } else {
+    //   console.log('Unauthorized create-timer attempt from:', socket.id);
+    // }
   });
 
   // Delete timer (controller only)
   socket.on('delete-timer', (timerId) => {
-    console.log('Delete timer request:', socket.id, 'timerId:', timerId);
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Delete timer request:', socket.id, 'timerId:', timerId);
+    // if (authenticatedControllers.has(socket.id)) {
       const timer = timers.get(timerId);
       if (timer) {
         // Disconnect all devices
@@ -365,113 +363,111 @@ io.on('connection', (socket) => {
           duration: timer.duration,
           connectedCount: timer.connectedDevices.size
         }));
-        console.log('Broadcasting updated timer list after deletion:', timerList);
+        // console.log('Broadcasting updated timer list after deletion:', timerList);
         io.emit('timer-list', timerList);
       }
-    } else {
-      console.log('Unauthorized delete-timer attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized delete-timer attempt from:', socket.id);
+    // }
   });
 
   // Timer controls (controller only)
   socket.on('set-timer', (data) => {
-    console.log('Set timer request:', socket.id, 'data:', data);
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Set timer request:', socket.id, 'data:', data);
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, data.timerId);
       const timer = timers.get(data.timerId);
       if (timer) {
         timer.setDuration(data.duration);
       }
-    } else {
-      console.log('Unauthorized set-timer attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized set-timer attempt from:', socket.id);
+    // }
   });
 
   socket.on('start-timer', (timerId) => {
-    console.log('Start timer request:', socket.id, 'timerId:', timerId);
-    console.log(controllerSocketId," --controllerSocketId")
-    console.log('Authenticated controllers:', Array.from(authenticatedControllers));
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Start timer request:', socket.id, 'timerId:', timerId);
+    // console.log(controllerSocketId," --controllerSocketId")
+    // console.log('Authenticated controllers:', Array.from(authenticatedControllers));
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, timerId);
       const timer = timers.get(timerId);
-      console.log('timers:', timers);
-      console.log('Timer:', timer);
       if (timer) {
         timer.start();
       }
-    } else {
-      console.log('Unauthorized start-timer attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized start-timer attempt from:', socket.id);
+    // }
   });
 
   socket.on('pause-timer', (timerId) => {
-    console.log('Pause timer request:', socket.id, 'timerId:', timerId);
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Pause timer request:', socket.id, 'timerId:', timerId);
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, timerId);
       const timer = timers.get(timerId);
       if (timer) {
         timer.pause();
       }
-    } else {
-      console.log('Unauthorized pause-timer attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized pause-timer attempt from:', socket.id);
+    // }
   });
 
   socket.on('reset-timer', (timerId) => {
     console.log('Reset timer request:', socket.id, 'timerId:', timerId);
-    if (authenticatedControllers.has(socket.id)) {
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, timerId);
       const timer = timers.get(timerId);
       if (timer) {
         timer.reset();
       }
-    } else {
-      console.log('Unauthorized reset-timer attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized reset-timer attempt from:', socket.id);
+    // }
   });
 
   socket.on('adjust-timer', (data) => {
     console.log('Adjust timer request:', socket.id, 'data:', data);
-    if (authenticatedControllers.has(socket.id)) {
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, data.timerId);
       const timer = timers.get(data.timerId);
       if (timer) {
         timer.adjustTime(data.seconds);
       }
-    } else {
-      console.log('Unauthorized adjust-timer attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized adjust-timer attempt from:', socket.id);
+    // }
   });
 
   socket.on('update-message', (data) => {
-    console.log('Update message request:', socket.id, 'data:', data);
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Update message request:', socket.id, 'data:', data);
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, data.timerId);
       const timer = timers.get(data.timerId);
       if (timer) {
         timer.updateMessage(data.message);
       }
-    } else {
-      console.log('Unauthorized update-message attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized update-message attempt from:', socket.id);
+    // }
   });
 
   socket.on('clear-message', (timerId) => {
-    console.log('Clear message request:', socket.id, 'timerId:', timerId);
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Clear message request:', socket.id, 'timerId:', timerId);
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, timerId);
       const timer = timers.get(timerId);
       if (timer) {
         timer.clearMessage();
       }
-    } else {
-      console.log('Unauthorized clear-message attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized clear-message attempt from:', socket.id);
+    // }
   });
 
   socket.on('update-styling', (data) => {
-    console.log('Update styling request:', socket.id, 'data:', data);
-    if (authenticatedControllers.has(socket.id)) {
+    // console.log('Update styling request:', socket.id, 'data:', data);
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, data.timerId);
       const timer = timers.get(data.timerId);
       if (timer) {
@@ -487,39 +483,39 @@ io.on('connection', (socket) => {
       } else {
         console.log('Timer not found for styling update:', data.timerId);
       }
-    } else {
-      console.log('Unauthorized update-styling attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized update-styling attempt from:', socket.id);
+    // }
   });
 
   socket.on('toggle-flash', (data) => {
     console.log('Toggle flash request:', socket.id, 'data:', data);
-    if (authenticatedControllers.has(socket.id)) {
+    // if (authenticatedControllers.has(socket.id)) {
       ensureControllerConnected(socket, data.timerId);
       const timer = timers.get(data.timerId);
       if (timer) {
         timer.toggleFlash(data.isFlashing);
       }
-    } else {
-      console.log('Unauthorized toggle-flash attempt from:', socket.id);
-    }
+    // } else {
+    //   console.log('Unauthorized toggle-flash attempt from:', socket.id);
+    // }
   });
 
   // Handle disconnection
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    // console.log('Client disconnected:', socket.id);
     
     // Remove from authenticated controllers if it was a controller
-    if (authenticatedControllers.has(socket.id)) {
-      authenticatedControllers.delete(socket.id);
-      console.log('Controller removed from authenticated list:', socket.id);
+    // if (authenticatedControllers.has(socket.id)) {
+      // authenticatedControllers.delete(socket.id);
+      // console.log('Controller removed from authenticated list:', socket.id);
       
       // If this was the current controllerSocketId, clear it
       if (controllerSocketId === socket.id) {
         controllerSocketId = null;
         console.log('controllerSocketId cleared due to disconnect');
       }
-    }
+    // }
     
     // Remove from timer
     const timerId = deviceToTimer.get(socket.id);
