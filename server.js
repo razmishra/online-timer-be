@@ -266,14 +266,33 @@ io.on('connection', (socket) => {
   socket.on('join-timer', ({ timerId, controllerId }) => {
     if (!controllerId) return;
     const timer = timers.get(timerId);
-    if (timer && timer.controllerId === controllerId) {
+    if (timer) {
       const wasAdded = timer.addDevice(socket.id);
       if (wasAdded) {
         deviceToTimer.set(socket.id, timerId);
       }
       const timerState = timer.getState();
       socket.emit('timer-joined', timerState);
-      emitTimerListForController(socket, controllerId);
+      // Only emit timer list if this is the controller (owner)
+      if (timer.controllerId === controllerId) {
+        emitTimerListForController(socket, controllerId);
+      }
+    } else {
+      socket.emit('timer-not-found', { timerId });
+    }
+  });
+
+  // --- VIEW TIMER (for viewers) ---
+  socket.on('view-timer', ({ timerId, controllerId }) => {
+    if (!controllerId) return;
+    const timer = timers.get(timerId);
+    if (timer) {
+      const wasAdded = timer.addDevice(socket.id);
+      if (wasAdded) {
+        deviceToTimer.set(socket.id, timerId);
+      }
+      const timerState = timer.getState();
+      socket.emit('timer-joined', timerState);
     } else {
       socket.emit('timer-not-found', { timerId });
     }
