@@ -36,6 +36,7 @@ class Timer {
     this.id = id;
     this.name = name;
     this.duration = duration; // in seconds
+    this.originalDuration = duration; // Store the original duration for reset
     this.remaining = duration;
     this.isRunning = false;
     this.startTime = null;
@@ -47,6 +48,7 @@ class Timer {
     this.connectedDevices = new Set(); // Track connected devices
     this.interval = null;
     this.controllerId = null;
+    this.timerView = 'normal';
   }
 
   start() {
@@ -81,29 +83,27 @@ class Timer {
 
   reset() {
     this.isRunning = false;
-    this.remaining = this.duration;
+    this.duration = this.originalDuration; // Restore to original duration
+    this.remaining = this.originalDuration;
     this.startTime = null;
-    
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
     }
-    
     this.update();
     console.log(`Timer ${this.id} reset`);
   }
 
   setDuration(duration) {
     this.duration = duration;
+    this.originalDuration = duration; // Update original duration on set
     this.remaining = duration;
     this.isRunning = false;
     this.startTime = null;
-    
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = null;
     }
-    
     this.update();
   }
 
@@ -192,6 +192,7 @@ class Timer {
     this.backgroundColor = styling.backgroundColor || this.backgroundColor;
     this.textColor = styling.textColor || this.textColor;
     this.fontSize = styling.fontSize || this.fontSize;
+    this.timerView = styling.timerView || this.timerView;
     this.update();
   }
 
@@ -212,7 +213,13 @@ class Timer {
       textColor: this.textColor,
       fontSize: this.fontSize,
       isFlashing: this.isFlashing,
-      connectedCount: this.connectedDevices.size
+      connectedCount: this.connectedDevices.size,
+      styling: {
+        backgroundColor: this.backgroundColor,
+        textColor: this.textColor,
+        fontSize: this.fontSize,
+        timerView: this.timerView || 'normal',
+      },
     };
   }
 }
@@ -299,11 +306,17 @@ io.on('connection', (socket) => {
   });
 
   // --- CREATE TIMER ---
-  socket.on('create-timer', ({ name, duration, controllerId }) => {
+  socket.on('create-timer', ({ name, duration, controllerId, styling }) => {
     if (!controllerId) return;
     const timerId = generateId();
     const timer = new Timer(timerId, name, duration);
     timer.controllerId = controllerId;
+    if (styling) {
+      timer.backgroundColor = styling.backgroundColor || timer.backgroundColor;
+      timer.textColor = styling.textColor || timer.textColor;
+      timer.fontSize = styling.fontSize || timer.fontSize;
+      timer.timerView = styling.timerView || 'normal';
+    }
     timers.set(timerId, timer);
     if (!controllerTimers.has(controllerId)) controllerTimers.set(controllerId, new Set());
     controllerTimers.get(controllerId).add(timerId);
