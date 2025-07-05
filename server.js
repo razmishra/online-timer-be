@@ -25,6 +25,9 @@ const timers = new Map(); // timerId -> Timer instance
 const deviceToTimer = new Map(); // deviceId -> timerId
 const controllerTimers = new Map(); // controllerId -> Set of timerIds
 
+// Dynamic max connections per timer
+const MAX_CONNECTIONS_PER_TIMER = 4;
+
 // Helper function to generate unique IDs
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -52,15 +55,13 @@ class Timer {
   }
 
   start() {
-    console.log(`Attempting to start timer ${this.id}: isRunning=${this.isRunning}, remaining=${this.remaining}`);
+    // console.log(`Attempting to start timer ${this.id}: isRunning=${this.isRunning}, remaining=${this.remaining}`);
     if (!this.isRunning && this.remaining > 0) {
       this.isRunning = true;
       this.startTime = Date.now();
       this.interval = setInterval(() => this.update(), 1000);
       this.update();
-      console.log(`Timer ${this.id} started successfully`);
-    } else {
-      console.log(`Timer ${this.id} start failed: isRunning=${this.isRunning}, remaining=${this.remaining}`);
+      // console.log(`Timer ${this.id} started successfully`);
     }
   }
 
@@ -77,7 +78,7 @@ class Timer {
       }
       
       this.update();
-      console.log(`Timer ${this.id} paused`);
+      // console.log(`Timer ${this.id} paused`);
     }
   }
 
@@ -91,7 +92,7 @@ class Timer {
       this.interval = null;
     }
     this.update();
-    console.log(`Timer ${this.id} reset`);
+    // console.log(`Timer ${this.id} reset`);
   }
 
   setDuration(duration) {
@@ -157,7 +158,7 @@ class Timer {
           };
           socket.emit('timer-update', timerState);
         } else {
-          console.log(`Socket ${deviceId} not found, removing from connected devices`);
+          // console.log(`Socket ${deviceId} not found, removing from connected devices`);
           this.connectedDevices.delete(deviceId);
         }
       }
@@ -165,7 +166,7 @@ class Timer {
   }
 
   addDevice(deviceId) {
-    if (this.connectedDevices.size < 3) {
+    if (this.connectedDevices.size < MAX_CONNECTIONS_PER_TIMER) {
       this.connectedDevices.add(deviceId);
       this.update();
       return true;
@@ -228,7 +229,7 @@ class Timer {
 function ensureControllerConnected(socket, timerId) {
   const timer = timers.get(timerId);
   if (timer && !timer.connectedDevices.has(socket.id)) {
-    console.log(`Controller ${socket.id} not connected to timer ${timerId}, connecting now...`);
+    // console.log(`Controller ${socket.id} not connected to timer ${timerId}, connecting now...`);
     timer.addDevice(socket.id);
     deviceToTimer.set(socket.id, timerId);
   }
@@ -265,7 +266,7 @@ function emitTimerListForController(socket, controllerId) {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  // console.log('Client connected:', socket.id);
   
   // Wait for client to request their timers (with controllerId)
 
@@ -277,12 +278,14 @@ io.on('connection', (socket) => {
       const wasAdded = timer.addDevice(socket.id);
       if (wasAdded) {
         deviceToTimer.set(socket.id, timerId);
-      }
-      const timerState = timer.getState();
-      socket.emit('timer-joined', timerState);
-      // Only emit timer list if this is the controller (owner)
-      if (timer.controllerId === controllerId) {
-        emitTimerListForController(socket, controllerId);
+        const timerState = timer.getState();
+        socket.emit('timer-joined', timerState);
+        // Only emit timer list if this is the controller (owner)
+        if (timer.controllerId === controllerId) {
+          emitTimerListForController(socket, controllerId);
+        }
+      } else {
+        socket.emit('timer-full', { timerId, failedSocketId: socket.id });
       }
     } else {
       socket.emit('timer-not-found', { timerId });
@@ -297,9 +300,11 @@ io.on('connection', (socket) => {
       const wasAdded = timer.addDevice(socket.id);
       if (wasAdded) {
         deviceToTimer.set(socket.id, timerId);
+        const timerState = timer.getState();
+        socket.emit('timer-joined', timerState);
+      } else {
+        socket.emit('timer-full', { timerId, failedSocketId: socket.id });
       }
-      const timerState = timer.getState();
-      socket.emit('timer-joined', timerState);
     } else {
       socket.emit('timer-not-found', { timerId });
     }
