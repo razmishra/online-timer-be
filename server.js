@@ -61,7 +61,7 @@ class Timer {
       this.startTime = Date.now();
       this.interval = setInterval(() => this.update(), 1000);
       this.update();
-      // console.log(`Timer ${this.id} started successfully`);
+      console.log(`Timer ${this.id} started successfully`);
     }
   }
 
@@ -158,7 +158,7 @@ class Timer {
           };
           socket.emit('timer-update', timerState);
         } else {
-          // console.log(`Socket ${deviceId} not found, removing from connected devices`);
+          console.log(`Socket ${deviceId} not found, removing from connected devices`);
           this.connectedDevices.delete(deviceId);
         }
       }
@@ -229,7 +229,7 @@ class Timer {
 function ensureControllerConnected(socket, timerId) {
   const timer = timers.get(timerId);
   if (timer && !timer.connectedDevices.has(socket.id)) {
-    // console.log(`Controller ${socket.id} not connected to timer ${timerId}, connecting now...`);
+    console.log(`Controller ${socket.id} not connected to timer ${timerId}, connecting now...`);
     timer.addDevice(socket.id);
     deviceToTimer.set(socket.id, timerId);
   }
