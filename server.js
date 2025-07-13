@@ -55,13 +55,15 @@ class Timer {
   }
 
   start() {
-    // console.log(`Attempting to start timer ${this.id}: isRunning=${this.isRunning}, remaining=${this.remaining}`);
+    console.log(`Attempting to start timer ${this.id}: isRunning=${this.isRunning}, remaining=${this.remaining}`);
     if (!this.isRunning && this.remaining > 0) {
       this.isRunning = true;
       this.startTime = Date.now();
       this.interval = setInterval(() => this.update(), 1000);
       this.update();
       console.log(`Timer ${this.id} started successfully`);
+    } else {
+      console.log(`Timer ${this.id} start failed: isRunning=${this.isRunning}, remaining=${this.remaining}`);
     }
   }
 
@@ -78,7 +80,7 @@ class Timer {
       }
       
       this.update();
-      // console.log(`Timer ${this.id} paused`);
+      console.log(`Timer ${this.id} paused`);
     }
   }
 
@@ -92,7 +94,7 @@ class Timer {
       this.interval = null;
     }
     this.update();
-    // console.log(`Timer ${this.id} reset`);
+    console.log(`Timer ${this.id} reset`);
   }
 
   setDuration(duration) {
@@ -143,19 +145,7 @@ class Timer {
       if (io && io.sockets && io.sockets.sockets) {
         const socket = io.sockets.sockets.get(deviceId);
         if (socket) {
-          const timerState = {
-            id: this.id,
-            name: this.name,
-            duration: this.duration,
-            remaining: this.remaining,
-            isRunning: this.isRunning,
-            message: this.message,
-            backgroundColor: this.backgroundColor,
-            textColor: this.textColor,
-            fontSize: this.fontSize,
-            isFlashing: this.isFlashing,
-            connectedCount: this.connectedDevices.size
-          };
+          const timerState = this.getState();
           socket.emit('timer-update', timerState);
         } else {
           console.log(`Socket ${deviceId} not found, removing from connected devices`);
@@ -266,7 +256,7 @@ function emitTimerListForController(socket, controllerId) {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  // console.log('Client connected:', socket.id);
+  console.log('Client connected:', socket.id);
   
   // Wait for client to request their timers (with controllerId)
 
