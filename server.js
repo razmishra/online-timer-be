@@ -295,7 +295,7 @@ socket.on('join-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
 });
 
 // Modified view-timer event handler to update controllerToSocket and emit limit-exceeded to controller
-socket.on('view-timer', ({ timerId, controllerId }) => {
+socket.on('view-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
   if (!controllerId) return;
   const timer = timers.get(timerId);
   if (timer) {
