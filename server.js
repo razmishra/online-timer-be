@@ -283,7 +283,7 @@ socket.on('join-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
           controllerSocket.emit('limit-exceeded', {
             timerId,
             type: 'viewers',
-            message: `You've reached the maximum number of viewers (${timer.maxConnectionsAllowed}) for your plan. Upgrade to allow more viewers.`,
+            message: `You've reached the maximum number of viewers (${timer.maxConnectionsAllowed-1}) for your plan. Upgrade to allow more viewers.`,
           });
         }
       });
@@ -295,7 +295,7 @@ socket.on('join-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
 
 // Modified view-timer event handler to update controllerToSocket and emit limit-exceeded to controller
 socket.on('view-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
-  console.log(controllerId," --controllerId in view-timer event");
+  // console.log(controllerId," --controllerId in view-timer event");
   if (!controllerId) return;
   const timer = timers.get(timerId);
   if (timer) {
