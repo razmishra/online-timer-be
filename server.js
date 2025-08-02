@@ -250,7 +250,6 @@ function emitTimerListForController(socket, controllerId) {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  // console.log('Client connected:', socket.id);
 
     // --- JOIN TIMER ---
   // Modified join-timer event handler to update controllerToSocket and emit limit-exceeded to controller
@@ -274,7 +273,7 @@ socket.on('join-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
         emitTimerListForController(socket, controllerId);
       }
     } else {
-      socket.emit('timer-full', { timerId, failedSocketId: socket.id, isgood: false });
+      socket.emit('timer-full', { timerId, failedSocketId: socket.id });
 
       // Emit limit-exceeded to controller's socket(s) using controllerToSocket
       const controllerSocketIds = controllerToSocket.get(timer.controllerId) || new Set();
@@ -296,6 +295,7 @@ socket.on('join-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
 
 // Modified view-timer event handler to update controllerToSocket and emit limit-exceeded to controller
 socket.on('view-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
+  console.log(controllerId," --controllerId in view-timer event");
   if (!controllerId) return;
   const timer = timers.get(timerId);
   if (timer) {
@@ -312,7 +312,7 @@ socket.on('view-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
       const timerState = timer.getState();
       socket.emit('timer-joined', timerState);
     } else {
-      socket.emit('timer-full', { timerId, failedSocketId: socket.id, isgood: true });
+      socket.emit('timer-full', { timerId, failedSocketId: socket.id });
 
       // Emit limit-exceeded to controller's socket(s) using controllerToSocket
       const controllerSocketIds = controllerToSocket.get(timer.controllerId) || new Set();
