@@ -52,6 +52,7 @@ class Timer {
     this.interval = null;
     this.controllerId = null;
     this.timerView = 'normal';
+    this.joiningCode = ''; // Unique code for joining the timer
   }
 
   start() {
@@ -187,6 +188,11 @@ class Timer {
     this.update();
   }
 
+  updatejoiningCode(joiningCode) {
+    this.joiningCode = joiningCode;
+    this.update();
+  }
+
   getState() {
     return {
       id: this.id,
@@ -200,6 +206,7 @@ class Timer {
       fontSize: this.fontSize,
       isFlashing: this.isFlashing,
       connectedCount: this.connectedDevices.size,
+      joiningCode: this.joiningCode,
       styling: {
         backgroundColor: this.backgroundColor,
         textColor: this.textColor,
@@ -238,7 +245,8 @@ function getTimersForController(controllerId) {
       id: timer.id,
       name: timer.name,
       duration: timer.duration,
-      connectedCount: timer.connectedDevices.size
+      connectedCount: timer.connectedDevices.size,
+      joiningCode: timer.joiningCode || '',
     };
   }).filter(Boolean);
 }
@@ -472,6 +480,15 @@ socket.on('create-timer', ({ name, duration, maxConnectionsAllowed = 4, maxTimer
     const timer = timers.get(timerId);
     if (timer && timer.controllerId === controllerId) {
       timer.toggleFlash(isFlashing);
+      emitTimerListForController(socket, controllerId);
+    }
+  });
+
+  socket.on("update-joining-code", ({ timerId, joiningCode, controllerId }) => {
+    if (!controllerId) return;
+    const timer = timers.get(timerId);
+    if (timer && timer.controllerId === controllerId) {
+      timer.updatejoiningCode(joiningCode);
       emitTimerListForController(socket, controllerId);
     }
   });
