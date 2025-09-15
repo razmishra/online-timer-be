@@ -307,7 +307,6 @@ socket.on('view-timer', ({ timerId, controllerId, maxConnectionsAllowed }) => {
   if (!controllerId) return;
   const timer = timers.get(timerId);
   if (timer) {
-    timer.maxConnectionsAllowed = maxConnectionsAllowed ?? timer.maxConnectionsAllowed;
     const wasAdded = timer.addDevice(socket.id);
     if (wasAdded) {
       deviceToTimer.set(socket.id, timerId);
